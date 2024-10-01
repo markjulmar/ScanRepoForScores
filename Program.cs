@@ -1,4 +1,5 @@
-﻿using ScanPullRequestsForScores;
+﻿using System.Diagnostics;
+using ScanPullRequestsForScores;
 
 public static class Program
 {
@@ -31,14 +32,13 @@ public static class Program
             return;
         }
 
-        var tokenFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "github-token.txt");
-        if (!File.Exists(tokenFile))
+        var token = await ReadGitHubToken();
+        if (string.IsNullOrEmpty(token))
         {
-            await Console.Error.WriteLineAsync($"GitHub token does not exist - place PAT into {tokenFile}.");
+            await Console.Error.WriteLineAsync("Missing GitHub token. Exiting.");
             return;
         }
 
-        var token = (await File.ReadAllTextAsync(tokenFile)).Trim();
         Console.WriteLine($"Running on {org}/{repo}");
 
         try
@@ -54,4 +54,24 @@ public static class Program
     }
 
     private static void PrintHelp() => Console.Error.WriteLine("Missing arguments. Usage: <org/repo>");
+
+    private static async Task<string?> ReadGitHubToken()
+    {
+        var psi = new ProcessStartInfo("op")
+        {
+            Arguments = "read op://personal/github.com/token",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        var process = Process.Start(psi);
+        if (process == null)
+            return null;
+        
+        var token = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        return token?.TrimEnd();
+    }
 }
