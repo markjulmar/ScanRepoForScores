@@ -65,7 +65,7 @@ public static class Program
             RedirectStandardError = true
         };
 
-        var process = Process.Start(psi);
+        using var process = Process.Start(psi);
         if (process == null)
             return null;
         
